@@ -1,5 +1,5 @@
 <p align="center">
-  <a><img src=""></a>
+  <a><img src="https://v2.nonebot.dev/logo.png"></a>
 </p>
 <div align="center">
 
