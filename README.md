@@ -35,7 +35,7 @@ save_face_mode = 0  # 表情包的保存模式
 按常规方法导入插件即可。多群控制开关没有做,自己加一下吧（懒）
 
 <a href="https://github.com/Utmost-Happiness-Planet/uhpstatus/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL%20v3.0-orange" alt="license">
+    <img src="https://img.shields.io/badge/license-MIT-orange" alt="license">
   </a>
   
   <a href="https://github.com/nonebot/nonebot2">
