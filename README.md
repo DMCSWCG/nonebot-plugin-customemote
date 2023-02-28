@@ -1,5 +1,5 @@
 <p align="center">
-  <a><img src="http://tva1.sinaimg.cn/large/006APoFYly1fzdi7y0v9wg306o06ot8t.gif"></a>
+  <a><img src=""></a>
 </p>
 <div align="center">
 
