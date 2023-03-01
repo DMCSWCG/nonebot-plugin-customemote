@@ -1,6 +1,11 @@
 import os
 import nonebot
-import ujson as json
+
+try:
+    import ujson as json
+except:
+    import json
+
 from difflib import SequenceMatcher
 import aiofiles
 import httpx
@@ -9,27 +14,32 @@ from pathlib import Path
 import imghdr,random
 from string import ascii_letters
 
-save_face_path = "./data/custom_face_data/"
+save_emote_path = None
 try:
-    save_face_path = get_driver().config.save_face_path
+    save_emote_path = get_driver().config.save_emote_path
 except:
-    save_face_path = "./data/custom_face_data/"
-save_face_mode = 0
-try:
-    save_face_mode = abs(int(get_driver().config.save_face_path)) # message id mode set 0 photo mode set 1
-except:
-    save_face_mode = 0
-if abs(save_face_mode)>1:
-    nonebot.logger.warning("Not support face save mode! Will use message id mode to save face data!")
-    save_face_mode = 0
+    save_emote_path = "./data/custom_emote_data/"
+if save_emote_path is None:
+    save_emote_path = "./data/custom_emote_data/"
 
-class CustomFace:
+save_emote_mode = 0
+try:
+    save_emote_mode = abs(int(get_driver().config.save_emote_path)) # message id mode set 0 image mode set 1
+except:
+    save_emote_mode = 0
+
+if abs(save_emote_mode)>1:
+    nonebot.logger.warning("Not support emote save mode! Will use message id mode to save emote data!")
+    save_emote_mode = 0
+
+class CustomEmote:
     def __init__(self) -> None:
-        self.save_face_path = Path(os.path.abspath(save_face_path))
-        self.group_image_path  = Path(self.save_face_path,"group")
-        self.group_image_save_path = Path(self.save_face_path,"image")
-        self.temp_image_path   = Path(self.save_face_path,"temp")
-        self.face_save_mode = save_face_mode
+        self.save_emote_path = Path(os.path.abspath(save_emote_path))
+        self.group_image_path  = Path(self.save_emote_path,"group")
+        self.group_image_save_path = Path(self.save_emote_path,"image")
+        self.temp_image_path   = Path(self.save_emote_path,"temp")
+        self.emote_save_mode = save_emote_mode
+        self.active_keyword  = ["jpg","png","gif","JPG","PNG","GIF"]
         self.log_map()
 
     def log_map(self):
@@ -38,14 +48,26 @@ class CustomFace:
         self.info = nonebot.logger.info
     
     def check_data_path(self):
-        if not os.path.exists(self,self.save_face_path):
-            os.makedirs(self.save_face_path)
+        if not os.path.exists(self,self.save_emote_path):
+            os.makedirs(self.save_emote_path)
         if not os.path.exists(self.group_image_path):
             os.makedirs(self.group_image_path)
         if not os.path.exists(self.temp_image_path):
             os.makedirs(self.temp_image_path)
         if not os.path.exists(self.group_image_save_path):
             os.makedirs(self.group_image_save_path)
+    
+    async def send_trigger(self,text:str):
+        for keyword in self.active_keyword:
+            if text.endswith(keyword):
+                return True
+        return False
+    
+    async def get_emote_name(self,text:str)->str:
+        emote_name = text.replace(".","")
+        for not_in_str in self.active_keyword:
+            emote_name = emote_name.replace(not_in_str,"")
+        return emote_name
     
     async def ReadJson(self,path):
         async with aiofiles.open(path,"r") as f:
@@ -69,27 +91,27 @@ class CustomFace:
             self.error("表情图片下载失败 Res:{}".format(e))
             return None
         
-    async def save_as_message_id(self,face_name,group_id,file) -> dict:
+    async def save_as_message_id(self,emote_name,group_id,file) -> dict:
         data_path = Path(self.group_image_path,f"/{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
-            data[face_name]["message_id"]=file
+            data[emote_name]["message_id"]=file
         else:
             data = {}
-            data[face_name]={"message_id":file,"photo_path":None}
+            data[emote_name]={"message_id":file,"image_path":None}
         return data
     
-    async def save_as_photo_file(self,face_name,group_id,url) -> dict:
+    async def save_as_image_file(self,emote_name,group_id,url) -> dict:
         async def to_save(save_path):
             path_head = "file:///"
             data_path = Path(self.group_image_path,f"/{group_id}.json")
             data = {}
             if os.path.exists(save_path):
                 data = await self.ReadJson(data_path)
-                data[face_name]["photo_path"]=save_path
+                data[emote_name]["image_path"]=save_path
             else:
                 data = {}
-                data[face_name]={"message_id":None,"photo_path":path_head+save_path}
+                data[emote_name]={"image_file":None,"image_path":path_head+save_path}
             return data
 
         save_path = await self.download_image(url)
@@ -102,7 +124,7 @@ class CustomFace:
             os.remove(save_path)
             return {}
         else:
-            save_path_final = Path(self.group_image_save_path,group_id,face_name+".{}".format(image_type))
+            save_path_final = Path(self.group_image_save_path,group_id,emote_name+".{}".format(image_type))
             async with aiofiles.open(save_path,"rb") as f:
                 data = await f.read()
             async with aiofiles.open(save_path_final,"wb") as f:
@@ -112,12 +134,12 @@ class CustomFace:
 
         
 
-    async def save_image_file(self,face_name=None,file=None,url=None,group_id=None) -> bool:
+    async def save_image_file(self,emote_name=None,file=None,url=None,group_id=None) -> bool:
         data = {}
-        if self.face_save_mode == 0:
-            data = await self.save_as_message_id(face_name=face_name,file=file,group_id=group_id)
-        elif self.face_save_mode == 1:
-            data = await self.save_as_photo_file(face_name=face_name,group_id=group_id,url=url)
+        if self.emote_save_mode == 0:
+            data = await self.save_as_message_id(emote_name=emote_name,file=file,group_id=group_id)
+        elif self.emote_save_mode == 1:
+            data = await self.save_as_image_file(emote_name=emote_name,group_id=group_id,url=url)
         else:
             self.error("图片存储模式设置错误！")
             return
@@ -136,25 +158,26 @@ class CustomFace:
             group_self_data = None
         return group_self_data
     
-    async def get_best_matcher_file(self,image_data,face_name):
+    async def get_best_matcher_file(self,image_data,emote_name):
         for data in image_data.keys():
-            MatcherRate = SequenceMatcher(None, data, face_name).ratio()
+            MatcherRate = SequenceMatcher(None, data, emote_name).ratio()
             if MatcherRate>0.85:
                 return image_data[data]
         return None
 
-    async def search_matcher_face(self,face_name,group_id):
+    async def search_matcher_emote(self,emote_name,group_id):
+        emote_name = self.get_emote_name(emote_name)
         self_group_data = await self.get_image_file_list(group_id)
         if self_group_data is None:
             return None
-        face_data = await self.get_best_matcher_file(self_group_data,face_name)
-        return face_data["message_id"] , face_data["photo_path"]
+        emote_data = await self.get_best_matcher_file(self_group_data,emote_name)
+        return emote_data["image_file"] , emote_data["image_path"]
 
-    async def remove_custom_face(self,group_id,keyword):
+    async def remove_custom_emote(self,group_id,keyword):
         if os.path.exists(self.group_image_path+f"/{group_id}.json"):
             data = await self.ReadJson(self.group_image_path+f"/{group_id}.json")
             if keyword not in data:
-                return None
+                return False
             data.pop(keyword)
             await self.WriteJson(self.group_image_path+f"/{group_id}.json",data)
             return True
