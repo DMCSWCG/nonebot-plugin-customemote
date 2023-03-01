@@ -12,8 +12,8 @@ except:
     raise ImportError("No support adapter find! Abort load!")
 from nonebot.plugin import PluginMetadata
 import time,re
-from data_source import *
-from config import *
+from .data_source import *
+from .config import *
 
 global_config = nonebot.get_driver().config
 plugin_config = Config(**global_config.dict())
