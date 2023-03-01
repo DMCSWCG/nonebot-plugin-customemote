@@ -29,7 +29,7 @@ except:
     save_emote_mode = 0
 
 if abs(save_emote_mode)>1:
-    nonebot.logger.warning("Not support emote save mode! Will use message id mode to save emote data!")
+    nonebot.logger.warning("Not support emote save mode! Will use cqhttp image file mode to save emote data!")
     save_emote_mode = 0
 
 class CustomEmote:
