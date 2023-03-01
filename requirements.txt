@@ -1,0 +1,4 @@
+aiofiles
+httpx
+nonebot2
+ujson
