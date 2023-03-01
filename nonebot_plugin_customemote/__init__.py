@@ -1,5 +1,5 @@
 import nonebot
-from nonebot import on_message,on_command
+from nonebot import on_message,on_command,on_endswith
 from nonebot.exception import StopPropagation
 from nonebot.typing import T_State
 try:
@@ -8,11 +8,16 @@ except:
     from nonebot.adapters.onebot.v11 import Bot, MessageSegment,GroupMessageEvent,Message
 finally:
     raise ImportError("No support adapter find! Abort load!")
+
 import time
 from data_source import *
+from config import *
 
-
+customemote = CustomEmote()
 image_list = {}
+
+
+
 custom_emote_image_set = on_command("自定表情包设置",aliases={"自定义表情包设置","自定表情设置","自定义表情设置"},priority=10,block=False)
 @custom_emote_image_set.handle()
 async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
@@ -42,28 +47,32 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     await custom_emote_image_set.finish()
 
 
-
-customemote = CustomEmote()
-custom_emote_image_handle = on_message(priority=12,block=False)
-@custom_emote_image_handle.handle()
+custom_emote_image_capture = on_message(priority=99,block=False)
+@custom_emote_image_capture.handle()
 async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
     global image_list
     group_id = event.group_id
-    msg_text = event.get_plaintext()
     msg = event.get_message()
     if msg[0].type == "image":
         if not str(group_id) in image_list:
             image_list[f"{group_id}"]={}
-        image_list[f"{group_id}"][event.get_user_id()]={"image_file":msg[0].data["file"],"url":msg[0].data["url"],"message_id":event.message_id,"time":time.time()}
-        return
+        image_list[f"{group_id}"][event.get_user_id()]={"image_file":msg[0].data["file"],"url":msg[0].data["url"],"user_id":event.user_id,"group_id":group_id,"message_id":event.message_id,"time":time.time()}
+    return
+
+
+custom_emote_image_handle = on_endswith(tuple(customemote.active_keyword),priority=12,block=False)
+@custom_emote_image_handle.handle()
+async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
+    group_id = event.group_id
+    msg_text = event.get_plaintext()
     
     for message in Message(event.message):
         if message.type != "text":
-            return
-        
+            await custom_emote_image_handle.finish()
+
     emote_name = msg_text.strip()
     if not await customemote.send_trigger(emote_name):
-        return
+        await custom_emote_image_handle.finish()
     
     if emote_name:
         emote_message_id_file,emote_save_path = await customemote.search_matcher_emote(emote_name,group_id)
@@ -72,7 +81,7 @@ async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
                 data = await bot.get_image(file=emote_message_id_file)
             except Exception as e:
                 nonebot.logger.error("自动表情包发送失败 Message Error Res:"+str(e))
-                await custom_emote_image_handle.finish()
+                return
             image_msg = MessageSegment.image(data["url"])
         elif emote_save_path is not None:
             image_msg = MessageSegment.image(emote_save_path)
@@ -83,6 +92,4 @@ async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
         except Exception as e:
             nonebot.logger.error("自动表情包发送失败 Message Send Error Res:"+str(e))
             await custom_emote_image_handle.send("图片资源失效！")
-            return
-        raise StopPropagation("Stop Handle Message!")
-    return
+    await custom_emote_image_handle.finish()
