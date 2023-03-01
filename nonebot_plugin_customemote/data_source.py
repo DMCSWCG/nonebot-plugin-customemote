@@ -24,7 +24,7 @@ if save_emote_path is None:
 
 save_emote_mode = 0
 try:
-    save_emote_mode = abs(int(get_driver().config.save_emote_path)) # message id mode set 0 image mode set 1
+    save_emote_mode = abs(int(get_driver().config.save_emote_path)) # cqhttp image file mode set to 0 Image from url mode set to 1
 except:
     save_emote_mode = 0
 
