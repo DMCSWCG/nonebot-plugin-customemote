@@ -12,8 +12,8 @@ except:
     raise ImportError("No support adapter find! Abort load!")
 from nonebot.plugin import PluginMetadata
 import time,re
-from .data_source import *
-from .config import *
+from data_source import *
+from config import *
 
 global_config = nonebot.get_driver().config
 plugin_config = Config(**global_config.dict())
@@ -26,7 +26,7 @@ __plugin_meta__ = PluginMetadata(
     usage="触发方式：指令 + @user/qq/自己/图片\n发送“头像表情包”查看支持的指令",
     config=Config,
     extra={
-        "unique_name": "custom_face",
+        "unique_name": "custom_emote",
         "example": "设置表情：自定义表情设置 表情名称\n[回复图片]自定表情包设置 滑稽\n召唤表情：表情名称.jpg\n傻了吧唧的.jpg",
         "author": "DMCSWCG <cf136cs@163.com>",
         "version": "0.1.0",
@@ -42,26 +42,29 @@ custom_emote_image_set = on_command("自定表情包设置",aliases={"自定义�
 @custom_emote_image_set.handle()
 async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     image_data_queue = customemote.get_image_data_queue()
+    messages:Message = event.get_message()
+    user_id = event.get_user_id()
+    for message in messages:
+        if message.type == "at":
+            user_id = message.data["qq"]
     args = str(event.get_message()).strip()
     group_id = event.group_id
     if not args:
         await custom_emote_image_set.finish("请输入需要设置的表情名称")
-
+    if not str(group_id) in image_data_queue:
+        await custom_emote_image_set.finish("请先发送一张图片再使用该命令！")
+    if not event.get_user_id() in image_data_queue[str(group_id)]:
+        await custom_emote_image_set.finish("请先发送一张图片再使用该命令！")
+    if abs(image_data_queue[str(group_id)][user_id]["time"] - time.time()) >= (5.6*60):
+        image_data_queue[str(group_id)].pop(user_id)
+        customemote.put_image_data_queue(image_data_queue)
+        await custom_emote_image_set.finish("上次发图距离现在的时间太长了！请再发送图片后再使用该命令！")
+    state["emote_set_user_id"]=user_id
     if not "two_step_check" in state:
         emote_name = args
         state["emote_name"] = emote_name
     else:
         state["two_step_check_keyword"] = args
-
-    if not str(group_id) in image_data_queue:
-        await custom_emote_image_set.finish("请先发送一张图片再使用该命令！")
-    if not event.get_user_id() in image_data_queue[str(group_id)]:
-        await custom_emote_image_set.finish("请先发送一张图片再使用该命令！")
-    if abs(image_data_queue[str(group_id)][event.get_user_id()]["time"] - time.time()) >= (5.6*60):
-        image_data_queue[str(group_id)].pop(event.get_user_id())
-        customemote.put_image_data_queue(image_data_queue)
-        await custom_emote_image_set.finish("你上次发图距离现在的时间太长了请再发送图片后再使用该命令！")
-    
     if await customemote.emote_name_is_exist(emote_name,group_id):
         state["two_step_check"]=True
         await custom_emote_image_set.reject("当前设置的表情名称已经存在！是否覆盖设置？")
@@ -75,45 +78,47 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
         state["set_image"] = True
         state.pop("two_step_check_keyword")
         state.pop("two_step_check")
-
+        return
     elif state["two_step_check_keyword"]=="否":
-        state.pop("emote_name")
-        state.pop("two_step_check_keyword")
-        state.pop("two_step_check")
-        await custom_emote_image_set.finish("取消设置！")
+        await custom_emote_image_set.send("取消设置！")
     else:
         if not "wait_count" in state:
             state["wait_count"] = 1
         else :
             state["wait_count"] +=1
         if state["wait_count"]>3:
-            state.pop("emote_name")
-            state.pop("two_step_check_keyword")
-            state.pop("two_step_check")
-            state.pop("wait_count")
-            await custom_emote_image_set.finish("取消设置！")
-    return
+            await custom_emote_image_set.send("取消设置！")
+        else:
+            await custom_emote_image_set.reject("请发送是/否确认设置！")
+    state.pop("emote_name")
+    state.pop("two_step_check_keyword")
+    state.pop("two_step_check")
+    state.pop("wait_count")
+    state.pop("emote_set_user_id")
+    await custom_emote_image_set.finish()
 
 @custom_emote_image_set.got("set_image")
 async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     group_id = event.group_id
     image_data_queue = customemote.get_image_data_queue()
     emote_name = state["emote_name"]
-    state.pop("emote_name")
-    state.pop("set_image")
+    state = False
     try:
-        state = await customemote.save_emote_image(emote_name=emote_name,file=image_data_queue[str(group_id)][event.get_user_id()]["image_file"],url=image_data_queue[str(group_id)][event.get_user_id()]["url"],group_id=group_id,user_id=event.get_user_id())
+        state = await customemote.save_emote_image(emote_name=emote_name,file=image_data_queue[str(group_id)][state["emote_set_user_id"]]["image_file"],url=image_data_queue[str(group_id)][event.get_user_id()]["url"],group_id=group_id,user_id=event.get_user_id())
     except Exception as e:
         nonebot.logger.error("自定表情设置失败 Res:"+str(e))
         await custom_emote_image_set.send("设置失败！出错了！")
-        return
     if not state:
-        await custom_emote_image_set.finish("设置失败！出错了！")
-    reply = MessageSegment.reply(image_data_queue[str(group_id)][event.get_user_id()]["message_id"]) + MessageSegment.text("设置成功！")
-    try:
-        await custom_emote_image_set.send(reply)
-    except:
-        await custom_emote_image_set.send("设置成功！")
+        await custom_emote_image_set.send("设置失败！出错了！")
+    else:
+        reply = MessageSegment.reply(image_data_queue[str(group_id)][state["emote_set_user_id"]]["message_id"]) + MessageSegment.text("设置成功！")
+        try:
+            await custom_emote_image_set.send(reply)
+        except:
+            await custom_emote_image_set.send("设置成功！")
+    state.pop("emote_name")
+    state.pop("set_image")
+    state.pop("emote_set_user_id")
     await custom_emote_image_set.finish()
 
 custom_emote_image_capture = on_message(priority=99,block=False)
@@ -135,7 +140,7 @@ async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
     group_id = event.group_id
     msg_text = event.get_plaintext()
     
-    for message in Message(event.message):
+    for message in Message(event.get_message()):
         if message.type != "text":
             await custom_emote_image_handle.finish()
 
