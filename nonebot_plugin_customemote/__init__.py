@@ -28,7 +28,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "custom_emote",
         "example": "设置表情：自定义表情设置 表情名称\n[回复图片]自定表情包设置 滑稽\n召唤表情：表情名称.jpg\n傻了吧唧的.jpg",
-        "author": "DMCSWCG <cf136cs@163.com>",
+        "author": "DMCSWCG <cf136cs@163.com> Techlorine <xxxxxxxxx>",
         "version": "0.1.0",
     },
 )
