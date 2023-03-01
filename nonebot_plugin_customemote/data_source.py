@@ -24,12 +24,12 @@ if save_emote_path is None:
 
 save_emote_mode = 0
 try:
-    save_emote_mode = abs(int(get_driver().config.save_emote_path)) # cqhttp image file mode set to 0 Image from url mode set to 1
+    save_emote_mode = abs(int(get_driver().config.save_emote_path)) # message id mode set 0 image mode set 1
 except:
     save_emote_mode = 0
 
 if abs(save_emote_mode)>1:
-    nonebot.logger.warning("Not support emote save mode! Will use cqhttp image file mode to save emote data!")
+    nonebot.logger.warning("Not support emote save mode! Will use message id mode to save emote data!")
     save_emote_mode = 0
 
 class CustomEmote:
@@ -40,13 +40,24 @@ class CustomEmote:
         self.temp_image_path   = Path(self.save_emote_path,"temp")
         self.emote_save_mode = save_emote_mode
         self.active_keyword  = ["jpg","png","gif","JPG","PNG","GIF"]
+        self.image_data_queue = {}
         self.log_map()
 
     def log_map(self):
         self.error = nonebot.logger.error
         self.warning = nonebot.logger.warning
         self.info = nonebot.logger.info
+        self.debug = nonebot.logger.debug
     
+    async def get_image_data_queue(self)->dict:
+        return self.image_data_queue
+    
+    async def put_image_data_queue(self,queue:dict)->bool:
+        if not isinstance(queue,dict):
+            return False
+        self.image_data_queue = queue
+        return True
+
     def check_data_path(self):
         if not os.path.exists(self,self.save_emote_path):
             os.makedirs(self.save_emote_path)
@@ -132,9 +143,13 @@ class CustomEmote:
             os.remove(save_path)
         return await to_save(save_path_final)
 
-        
+    async def emote_name_is_exist(self,emote_name:str,group_id) -> bool:
+        file,url = await self.search_matcher_emote(emote_name,group_id)
+        if file is not None or url is not None:
+            return True
+        return False
 
-    async def save_image_file(self,emote_name=None,file=None,url=None,group_id=None) -> bool:
+    async def save_emote_image(self,emote_name=None,file=None,url=None,group_id=None) -> bool:
         data = {}
         if self.emote_save_mode == 0:
             data = await self.save_as_message_id(emote_name=emote_name,file=file,group_id=group_id)
@@ -171,7 +186,7 @@ class CustomEmote:
         if self_group_data is None:
             return None
         emote_data = await self.get_best_matcher_file(self_group_data,emote_name)
-        return emote_data["image_file"] , emote_data["image_path"]
+        return emote_data["image_file"], emote_data["image_path"]
 
     async def remove_custom_emote(self,group_id,keyword):
         if os.path.exists(self.group_image_path+f"/{group_id}.json"):
