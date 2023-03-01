@@ -4,7 +4,7 @@
 <div align="center">
 
   # Custom Emote
-  ✨ 基于[NoneBot](https://github.com/nonebot/nonebot2)的插件，群聊自定义表情包发送器 ✨
+  ✨ 基于[NoneBot2](https://github.com/nonebot/nonebot2)的插件，群聊自定义表情包发送器 ✨
   </br>
   ✨ Custom Emote ✨
 </div>
