@@ -91,17 +91,19 @@ class CustomEmote:
             self.error("表情图片下载失败 Res:{}".format(e))
             return None
         
-    async def save_as_message_id(self,emote_name,group_id,file) -> dict:
+    async def save_as_cqhttp_image_file(self,emote_name,file,group_id,user_id,share=True) -> dict:
         data_path = Path(self.group_image_path,f"/{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
-            data[emote_name]["message_id"]=file
+            data[emote_name]["image_file"]=file
+            data[emote_name]["user_id"]=user_id
+            data[emote_name]["share"]=share
         else:
             data = {}
-            data[emote_name]={"message_id":file,"image_path":None}
+            data[emote_name]={"image_file":file,"image_path":None,"user_id":user_id,"share":share}
         return data
     
-    async def save_as_image_file(self,emote_name,group_id,url) -> dict:
+    async def save_as_direct_image_file(self,emote_name,url,group_id,user_id,share=True) -> dict:
         async def to_save(save_path):
             path_head = "file:///"
             data_path = Path(self.group_image_path,f"/{group_id}.json")
@@ -109,9 +111,11 @@ class CustomEmote:
             if os.path.exists(save_path):
                 data = await self.ReadJson(data_path)
                 data[emote_name]["image_path"]=save_path
+                data[emote_name]["user_id"]=user_id
+                data[emote_name]["share"]=share
             else:
                 data = {}
-                data[emote_name]={"image_file":None,"image_path":path_head+save_path}
+                data[emote_name]={"image_file":None,"image_path":path_head+save_path,"user_id":user_id,"share":share}
             return data
 
         save_path = await self.download_image(url)
@@ -138,12 +142,12 @@ class CustomEmote:
             return True
         return False
 
-    async def save_emote_image(self,emote_name=None,file=None,url=None,group_id=None) -> bool:
+    async def save_emote_image(self,emote_name=None,file=None,url=None,group_id=None,user_id=None,share=True) -> bool:
         data = {}
         if self.emote_save_mode == 0:
-            data = await self.save_as_message_id(emote_name=emote_name,file=file,group_id=group_id)
+            data = await self.save_as_cqhttp_image_file(emote_name=emote_name,file=file,group_id=group_id,user_id=user_id,share=share)
         elif self.emote_save_mode == 1:
-            data = await self.save_as_image_file(emote_name=emote_name,group_id=group_id,url=url)
+            data = await self.save_as_direct_image_file(emote_name=emote_name,url=url,group_id=group_id,user_id=user_id,share=share)
         else:
             self.error("图片存储模式设置错误！")
             return
@@ -153,7 +157,6 @@ class CustomEmote:
         await self.WriteJson(data_path,data)
         return True
         
-
     async def get_image_file_list(self,group_id):
         data_path = Path(self.group_image_path,f"/{group_id}.json")
         if os.path.exists(data_path):
@@ -169,20 +172,23 @@ class CustomEmote:
                 return image_data[data]
         return None
 
-    async def search_matcher_emote(self,emote_name,group_id):
+    async def search_matcher_emote(self,emote_name,group_id,user_id):
         emote_name = self.get_emote_name(emote_name)
         self_group_data = await self.get_image_file_list(group_id)
         if self_group_data is None:
-            return None
+            return None,None
         emote_data = await self.get_best_matcher_file(self_group_data,emote_name)
+        if not emote_data["share"] and str(emote_data)!=str(user_id):
+            return None,None
         return emote_data["image_file"], emote_data["image_path"]
 
     async def remove_custom_emote(self,group_id,keyword):
-        if os.path.exists(self.group_image_path+f"/{group_id}.json"):
-            data = await self.ReadJson(self.group_image_path+f"/{group_id}.json")
+        data_path = Path(self.group_image_path+f"/{group_id}.json")
+        if os.path.exists(data_path):
+            data = await self.ReadJson(data_path)
             if keyword not in data:
                 return False
             data.pop(keyword)
-            await self.WriteJson(self.group_image_path+f"/{group_id}.json",data)
+            await self.WriteJson(data_path)
             return True
         return False
