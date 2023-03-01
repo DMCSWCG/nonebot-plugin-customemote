@@ -178,7 +178,7 @@ class CustomEmote:
         if self_group_data is None:
             return None,None
         emote_data = await self.get_best_matcher_file(self_group_data,emote_name)
-        if not emote_data["share"] and str(emote_data)!=str(user_id):
+        if not emote_data["share"] and str(emote_data["user_id"])!=str(user_id):
             return None,None
         return emote_data["image_file"], emote_data["image_path"]
 
