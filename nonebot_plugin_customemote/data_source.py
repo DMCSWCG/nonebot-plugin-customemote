@@ -13,27 +13,16 @@ from nonebot import get_driver
 from pathlib import Path
 import imghdr,random
 from string import ascii_letters
+from config import Config
 
-save_emote_path = None
-try:
-    save_emote_path = get_driver().config.save_emote_path
-except:
-    save_emote_path = "./data/custom_emote_data/"
-if save_emote_path is None:
-    save_emote_path = "./data/custom_emote_data/"
-
-save_emote_mode = 0
-try:
-    save_emote_mode = abs(int(get_driver().config.save_emote_path)) # message id mode set 0 image mode set 1
-except:
-    save_emote_mode = 0
-
-if abs(save_emote_mode)>1:
-    nonebot.logger.warning("Not support emote save mode! Will use message id mode to save emote data!")
-    save_emote_mode = 0
 
 class CustomEmote:
-    def __init__(self) -> None:
+    def __init__(self,setup_config:Config) -> None:
+        save_emote_path = setup_config.save_emote_path
+        save_emote_mode = setup_config.save_emote_mode
+        if abs(save_emote_mode)>1:
+            nonebot.logger.warning("Not support emote save mode! Will use message id mode to save emote data!")
+            save_emote_mode = 0
         self.save_emote_path = Path(os.path.abspath(save_emote_path))
         self.group_image_path  = Path(self.save_emote_path,"group")
         self.group_image_save_path = Path(self.save_emote_path,"image")
