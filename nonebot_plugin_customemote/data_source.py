@@ -13,7 +13,7 @@ from nonebot import get_driver
 from pathlib import Path
 import imghdr,random
 from string import ascii_letters
-from config import Config
+from .config import Config
 
 
 class CustomEmote:
