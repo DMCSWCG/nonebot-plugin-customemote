@@ -1,12 +1,13 @@
 import nonebot
 from nonebot import on_message,on_command
 from nonebot.exception import StopPropagation
+from nonebot.typing import T_State
 try:
     from nonebot.adapters.cqhttp import Bot, MessageSegment,GroupMessageEvent,Message
-    from nonebot.typing import T_State
-except ImportError:
-    nonebot.logger.error("Can't find adapters! Abort load!")
-    raise ImportError("No support adapter find!")
+except:
+    from nonebot.adapters.onebot.v11 import Bot, MessageSegment,GroupMessageEvent,Message
+finally:
+    raise ImportError("No support adapter find! Abort load!")
 import time
 from data_source import *
 
