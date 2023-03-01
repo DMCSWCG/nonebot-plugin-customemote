@@ -35,6 +35,8 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     if not event.get_user_id() in image_data_queue[str(group_id)]:
         await custom_emote_image_set.finish("请先发送一张图片再使用该命令！")
     if abs(image_data_queue[str(group_id)][event.get_user_id()]["time"] - time.time()) >= (5.6*60):
+        image_data_queue[str(group_id)].pop(event.get_user_id())
+        customemote.put_image_data_queue(image_data_queue)
         await custom_emote_image_set.finish("你上次发图距离现在的时间太长了请再发送图片后再使用该命令！")
     
     if await customemote.emote_name_is_exist(emote_name,group_id):
