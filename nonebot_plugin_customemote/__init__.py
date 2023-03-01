@@ -44,10 +44,15 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     image_data_queue = customemote.get_image_data_queue()
     messages:Message = event.get_message()
     user_id = event.get_user_id()
+    find_at = False
+    in_at_args = None
     for message in messages:
         if message.type == "at":
             user_id = message.data["qq"]
-    args = str(event.get_message()).strip()
+            find_at = True
+        if message.type == "text":
+            in_at_args = message
+    args = str(event.get_message()).strip() if not find_at else str(in_at_args).strip()
     group_id = event.group_id
     if not args:
         await custom_emote_image_set.finish("请输入需要设置的表情名称")
