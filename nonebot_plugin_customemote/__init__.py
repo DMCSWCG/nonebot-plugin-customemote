@@ -5,8 +5,10 @@ from nonebot.typing import T_State
 try:
     from nonebot.adapters.cqhttp import Bot, MessageSegment,GroupMessageEvent,Message
 except:
+    nonebot.logger.warning("Nonebot version look like high then 2.0.0a16 to use high version adapters!")
+try:
     from nonebot.adapters.onebot.v11 import Bot, MessageSegment,GroupMessageEvent,Message
-finally:
+except:
     raise ImportError("No support adapter find! Abort load!")
 from nonebot.plugin import PluginMetadata
 import time,re
