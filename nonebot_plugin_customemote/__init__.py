@@ -28,7 +28,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "custom_face",
         "example": "设置表情：自定义表情设置 表情名称\n[回复图片]自定表情包设置 滑稽\n召唤表情：表情名称.jpg\n傻了吧唧的.jpg",
-        "author": "DMCSWCG <xxxxxxx@gmail.com>",
+        "author": "DMCSWCG <cf136cs@163.com>",
         "version": "0.1.0",
     },
 )
@@ -102,7 +102,7 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     state.pop("emote_name")
     state.pop("set_image")
     try:
-        state = await customemote.save_emote_image(emote_name=emote_name,file=image_data_queue[str(group_id)][event.get_user_id()]["image_file"],url=image_data_queue[str(group_id)][event.get_user_id()]["url"],group_id=group_id)
+        state = await customemote.save_emote_image(emote_name=emote_name,file=image_data_queue[str(group_id)][event.get_user_id()]["image_file"],url=image_data_queue[str(group_id)][event.get_user_id()]["url"],group_id=group_id,user_id=event.get_user_id())
     except Exception as e:
         nonebot.logger.error("自定表情设置失败 Res:"+str(e))
         await custom_emote_image_set.send("设置失败！出错了！")
@@ -144,10 +144,10 @@ async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
         await custom_emote_image_handle.finish()
     
     if emote_name:
-        emote_message_id_file,emote_save_path = await customemote.search_matcher_emote(emote_name,group_id)
-        if emote_message_id_file is not None:
+        emote_image_file,emote_save_path = await customemote.search_matcher_emote(emote_name,group_id)
+        if emote_image_file is not None:
             try:
-                data = await bot.get_image(file=emote_message_id_file)
+                data = await bot.get_image(file=emote_image_file)
             except Exception as e:
                 nonebot.logger.error("自动表情包发送失败 Message Error Res:"+str(e))
                 return
