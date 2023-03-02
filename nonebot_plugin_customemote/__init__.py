@@ -28,7 +28,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "unique_name": "custom_emote",
         "example": "设置表情：自定义表情设置 表情名称\n[回复图片]自定表情包设置 滑稽\n召唤表情：表情名称.jpg\n傻了吧唧的.jpg",
-        "author": "DMCSWCG <cf136cs@163.com> Techlorine <xxxxxxxxx>",
+        "author": "DMCSWCG <cf136cs@163.com>",
         "version": "0.1.0",
     },
 )
@@ -41,7 +41,7 @@ customemote = CustomEmote(plugin_config)
 custom_emote_image_set = on_command("自定表情包设置",aliases={"自定义表情包设置","自定表情设置","自定义表情设置"},priority=10,block=False)
 @custom_emote_image_set.handle()
 async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
-    image_data_queue = customemote.get_image_data_queue()
+    image_data_queue = await customemote.get_image_data_queue()
     messages:Message = event.get_message()
     user_id = event.get_user_id()
     find_at = False
@@ -78,7 +78,6 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
 
 @custom_emote_image_set.got("two_step_check")
 async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
-    image_data_queue = customemote.get_image_data_queue()
     if state["two_step_check_keyword"]=="是":
         state["set_image"] = True
         state.pop("two_step_check_keyword")
@@ -105,15 +104,15 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
 @custom_emote_image_set.got("set_image")
 async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
     group_id = event.group_id
-    image_data_queue = customemote.get_image_data_queue()
+    image_data_queue = await customemote.get_image_data_queue()
     emote_name = state["emote_name"]
-    state = False
+    execute_state = False
     try:
-        state = await customemote.save_emote_image(emote_name=emote_name,file=image_data_queue[str(group_id)][state["emote_set_user_id"]]["image_file"],url=image_data_queue[str(group_id)][event.get_user_id()]["url"],group_id=group_id,user_id=event.get_user_id())
+        execute_state = await customemote.save_emote_image(emote_name=emote_name,file=image_data_queue[str(group_id)][state["emote_set_user_id"]]["image_file"],url=image_data_queue[str(group_id)][event.get_user_id()]["url"],group_id=group_id,user_id=event.get_user_id())
     except Exception as e:
         nonebot.logger.error("自定表情设置失败 Res:"+str(e))
         await custom_emote_image_set.send("设置失败！出错了！")
-    if not state:
+    if not execute_state:
         await custom_emote_image_set.send("设置失败！出错了！")
     else:
         reply = MessageSegment.reply(image_data_queue[str(group_id)][state["emote_set_user_id"]]["message_id"]) + MessageSegment.text("设置成功！")
@@ -129,7 +128,7 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
 custom_emote_image_capture = on_message(priority=99,block=False)
 @custom_emote_image_capture.handle()
 async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
-    image_data_queue = customemote.get_image_data_queue()
+    image_data_queue = await customemote.get_image_data_queue()
     group_id = event.group_id
     msg = event.get_message()
     if msg[0].type == "image":
