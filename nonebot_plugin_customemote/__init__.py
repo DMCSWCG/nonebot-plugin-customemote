@@ -12,8 +12,8 @@ except:
     raise ImportError("No support adapter find! Abort load!")
 from nonebot.plugin import PluginMetadata
 import time,re
-from data_source import *
-from config import *
+from .data_source import *
+from .config import *
 
 global_config = nonebot.get_driver().config
 plugin_config = Config(**global_config.dict())
@@ -38,9 +38,11 @@ __plugin_meta__ = PluginMetadata(
 
 customemote = CustomEmote(plugin_config)
 
+
+# TODO: args: Message = CommandArg() IN HANDLER
 custom_emote_image_set = on_command("自定表情包设置",aliases={"自定义表情包设置","自定表情设置","自定义表情设置"},priority=10,block=False)
 @custom_emote_image_set.handle()
-async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
+async def _handle(bot: Bot, event: GroupMessageEvent,state:T_State):
     image_data_queue = await customemote.get_image_data_queue()
     messages:Message = event.get_message()
     user_id = event.get_user_id()
@@ -70,39 +72,39 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
         state["emote_name"] = emote_name
     else:
         state["two_step_check_keyword"] = args
-    if await customemote.emote_name_is_exist(emote_name,group_id):
+    if await customemote.emote_name_is_exist(emote_name, group_id, user_id):
         state["two_step_check"]=True
         await custom_emote_image_set.reject("当前设置的表情名称已经存在！是否覆盖设置？")
     else:
         state["set_image"] = True
 
-@custom_emote_image_set.got("two_step_check")
-async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
-    if state["two_step_check_keyword"]=="是":
-        state["set_image"] = True
-        state.pop("two_step_check_keyword")
-        state.pop("two_step_check")
-        return
-    elif state["two_step_check_keyword"]=="否":
-        await custom_emote_image_set.send("取消设置！")
-    else:
-        if not "wait_count" in state:
-            state["wait_count"] = 1
-        else :
-            state["wait_count"] +=1
-        if state["wait_count"]>3:
-            await custom_emote_image_set.send("取消设置！")
-        else:
-            await custom_emote_image_set.reject("请发送是/否确认设置！")
-    state.pop("emote_name")
-    state.pop("two_step_check_keyword")
-    state.pop("two_step_check")
-    state.pop("wait_count")
-    state.pop("emote_set_user_id")
-    await custom_emote_image_set.finish()
+# @custom_emote_image_set.got("two_step_check")
+# async def _2stepcheck(bot: Bot, event: GroupMessageEvent,state:T_State):
+#     if state["two_step_check_keyword"]=="是":
+#         state["set_image"] = True
+#         state.pop("two_step_check_keyword")
+#         state.pop("two_step_check")
+#         return
+#     elif state["two_step_check_keyword"]=="否":
+#         await custom_emote_image_set.send("取消设置！")
+#     else:
+#         if not "wait_count" in state:
+#             state["wait_count"] = 1
+#         else :
+#             state["wait_count"] +=1
+#         if state["wait_count"]>3:
+#             await custom_emote_image_set.send("取消设置！")
+#         else:
+#             await custom_emote_image_set.reject("请发送是/否确认设置！")
+#     state.pop("emote_name")
+#     state.pop("two_step_check_keyword")
+#     state.pop("two_step_check")
+#     state.pop("wait_count")
+#     state.pop("emote_set_user_id")
+#     await custom_emote_image_set.finish()
 
 @custom_emote_image_set.got("set_image")
-async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
+async def _setimage(bot: Bot, event: GroupMessageEvent,state:T_State):
     group_id = event.group_id
     image_data_queue = await customemote.get_image_data_queue()
     emote_name = state["emote_name"]
@@ -127,7 +129,7 @@ async def _(bot: Bot, event: GroupMessageEvent,state:T_State):
 
 custom_emote_image_capture = on_message(priority=99,block=False)
 @custom_emote_image_capture.handle()
-async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
+async def _emotecap(bot:Bot,event:GroupMessageEvent,state:T_State):
     image_data_queue = await customemote.get_image_data_queue()
     group_id = event.group_id
     msg = event.get_message()
@@ -140,8 +142,9 @@ async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
 
 custom_emote_image_handle = on_endswith(tuple(customemote.active_keyword),priority=12,block=False)
 @custom_emote_image_handle.handle()
-async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
+async def _onrecalljpg(bot:Bot,event:GroupMessageEvent,state:T_State):
     group_id = event.group_id
+    user_id = event.get_user_id()
     msg_text = event.get_plaintext()
     
     for message in Message(event.get_message()):
@@ -153,7 +156,7 @@ async def _(bot:Bot,event:GroupMessageEvent,state:T_State):
         await custom_emote_image_handle.finish()
     
     if emote_name:
-        emote_image_file,emote_save_path = await customemote.search_matcher_emote(emote_name,group_id)
+        emote_image_file,emote_save_path = await customemote.search_matcher_emote(emote_name, group_id, user_id)
         if emote_image_file is not None:
             try:
                 data = await bot.get_image(file=emote_image_file)

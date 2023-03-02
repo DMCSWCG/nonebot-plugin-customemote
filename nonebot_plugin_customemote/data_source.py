@@ -21,7 +21,7 @@ class CustomEmote:
         save_emote_path = setup_config.save_emote_path
         save_emote_mode = setup_config.save_emote_mode
         if abs(save_emote_mode)>1:
-            nonebot.logger.warning("Not support emote save mode! Will use message id mode to save emote data!")
+            nonebot.logger.warning(f"Emote save mode {save_emote_mode} not supported! Will use message id mode(0) to save emote data!")
             save_emote_mode = 0
         self.save_emote_path = Path(os.path.abspath(save_emote_path))
         self.group_image_path  = Path(self.save_emote_path,"group")
@@ -31,6 +31,7 @@ class CustomEmote:
         self.active_keyword  = ["jpg","png","gif","JPG","PNG","GIF"]
         self.image_data_queue = {}
         self.log_map()
+        self.check_data_path()
 
     def log_map(self):
         self.error = nonebot.logger.error
@@ -48,7 +49,7 @@ class CustomEmote:
         return True
 
     def check_data_path(self):
-        if not os.path.exists(self,self.save_emote_path):
+        if not os.path.exists(self.save_emote_path):
             os.makedirs(self.save_emote_path)
         if not os.path.exists(self.group_image_path):
             os.makedirs(self.group_image_path)
@@ -92,7 +93,7 @@ class CustomEmote:
             return None
         
     async def save_as_cqhttp_image_file(self,emote_name,file,group_id,user_id,share=True) -> dict:
-        data_path = Path(self.group_image_path,f"/{group_id}.json")
+        data_path = Path(self.group_image_path,f"{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
             data[emote_name]["image_file"]=file
@@ -106,7 +107,7 @@ class CustomEmote:
     async def save_as_direct_image_file(self,emote_name,url,group_id,user_id,share=True) -> dict:
         async def to_save(save_path):
             path_head = "file:///"
-            data_path = Path(self.group_image_path,f"/{group_id}.json")
+            data_path = Path(self.group_image_path,f"{group_id}.json")
             data = {}
             if os.path.exists(save_path):
                 data = await self.ReadJson(data_path)
@@ -136,12 +137,12 @@ class CustomEmote:
             os.remove(save_path)
         return await to_save(save_path_final)
 
-    async def emote_name_is_exist(self,emote_name:str,group_id) -> bool:
-        file,url = await self.search_matcher_emote(emote_name,group_id)
+    async def emote_name_is_exist(self,emote_name:str,group_id, user_id) -> bool:
+        file,url = await self.search_matcher_emote(emote_name,group_id, user_id)
         if file is not None or url is not None:
             return True
         return False
-
+    
     async def save_emote_image(self,emote_name=None,file=None,url=None,group_id=None,user_id=None,share=True) -> bool:
         data = {}
         if self.emote_save_mode == 0:
@@ -153,12 +154,13 @@ class CustomEmote:
             return
         if data is {}:
             return False
-        data_path = Path(self.group_image_path,f"/{group_id}.json")
+        data_path = Path(self.group_image_path,f"{group_id}.json")
+        self.info(f"Saving images to {data_path}")
         await self.WriteJson(data_path,data)
         return True
         
     async def get_image_file_list(self,group_id):
-        data_path = Path(self.group_image_path,f"/{group_id}.json")
+        data_path = Path(self.group_image_path,f"{group_id}.json")
         if os.path.exists(data_path):
             group_self_data = await self.ReadJson(data_path)
         else:
@@ -173,17 +175,20 @@ class CustomEmote:
         return None
 
     async def search_matcher_emote(self,emote_name,group_id,user_id):
-        emote_name = self.get_emote_name(emote_name)
+        emote_name = await self.get_emote_name(emote_name)
         self_group_data = await self.get_image_file_list(group_id)
         if self_group_data is None:
             return None,None
         emote_data = await self.get_best_matcher_file(self_group_data,emote_name)
+        # NONE CHECK
+        if emote_data is None:
+            return None,None
         if not emote_data["share"] and str(emote_data["user_id"])!=str(user_id):
             return None,None
         return emote_data["image_file"], emote_data["image_path"]
 
     async def remove_custom_emote(self,group_id,keyword):
-        data_path = Path(self.group_image_path+f"/{group_id}.json")
+        data_path = Path(self.group_image_path+f"{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
             if keyword not in data:
