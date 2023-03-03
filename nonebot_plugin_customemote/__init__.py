@@ -95,26 +95,6 @@ async def _sethandle(bot: Bot,
         nonebot.logger.debug("可以存图！")
         await set_image(event, emote_name)
 
-    # nonebot.logger.debug(f"StateDict_handle: {state}")
-
-    # # 不必这个，event传完了
-    # state["emote_set_user_id"]=user_id
-    # if not "two_step_check" in state:
-    #     emote_name = args
-    #     state["emote_name"] = emote_name
-    # else:
-    #     state["two_step_check_keyword"] = args
-    # if await customemote.emote_name_is_exist(emote_name, group_id, user_id):
-    #     state["two_step_check"]=True
-    #     await custom_emote_image_set.reject("当前设置的表情名称已经存在！是否覆盖设置？")
-    # else:
-    #     state["set_image"] = True
-    # nonebot.logger.debug(f"StateDict_handle: {state}")
-    # print(f"StateDict_handle: {state}")
-
-    # if(matcher.get_arg("two_step_check")):
-    #     await set_image(bot, event, emote_name)
-
 
 @custom_emote_image_set.got("two_step_check", prompt="当前设置的表情名称已经存在！是否覆盖设置？")
 async def _2stepcheck(bot: Bot,
