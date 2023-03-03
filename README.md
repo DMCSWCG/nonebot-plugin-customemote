@@ -28,7 +28,9 @@ save_face_mode = 0  # 表情包的保存模式
 
 # 1 为图片文件下载保存模式,直接下载图像文件保存在服务器上,无失效问题(如文件被删除则失效),但需注意存储空间使用量
 ```
+指令:
 
+1、
 按常规方法导入插件即可。多群控制开关没有做,自己加一下吧（懒）
 
 <a href="https://github.com/Utmost-Happiness-Planet/uhpstatus/blob/main/LICENSE">
