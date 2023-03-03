@@ -86,8 +86,9 @@ class CustomEmote:
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 data = await client.get(url)
-            prepare_name = "".join(random.choices(ascii_letters, 12)) + str(
+            prepare_name = "".join(random.choices(ascii_letters, k=12)) + str(
                 random.randint(10E5, 10E6))
+            data=data.content
             save_path = Path(self.temp_image_path, prepare_name)
             async with aiofiles.open(save_path, "wb") as f:
                 await f.write(data)
@@ -123,7 +124,7 @@ class CustomEmote:
                                         url:str=None,
                                         group_id:Union[str,int]=None,
                                         user_id:Union[str,int]=None,
-                                        share:bool=True) -> dict:
+                                        share:bool=True) -> Union[dict,None]:
         async def to_save(save_path):
             path_head = "file:///"
             data_path = Path(self.group_image_path, f"{group_id}.json")
@@ -143,15 +144,17 @@ class CustomEmote:
         save_path = await self.download_image(url)
         if save_path is None:
             self.error("图片下载失败！")
-            return {}
+            return None
         image_type = imghdr.what(save_path)
         if not image_type:
             self.error("不支持的图片格式！")
             os.remove(save_path)
-            return {}
+            return None
         else:
             save_path_final = Path(self.group_image_save_path, group_id,
                                    emote_name + ".{}".format(image_type))
+            if not os.path.exists(save_path_final):
+                os.makedirs(save_path_final)
             async with aiofiles.open(save_path, "rb") as f:
                 data = await f.read()
             async with aiofiles.open(save_path_final, "wb") as f:
@@ -190,7 +193,7 @@ class CustomEmote:
         else:
             self.error("图片存储模式设置错误！")
             return
-        if data is {}:
+        if data is None:
             return False
         data_path = Path(self.group_image_path, f"{group_id}.json")
         self.info(f"Saving images to {data_path}")
