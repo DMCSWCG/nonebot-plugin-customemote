@@ -33,10 +33,10 @@ class CustomEmote:
         self.active_keyword = ["jpg", "png", "gif", "JPG", "PNG", "GIF"]
         self.active_keyword_tuple = tuple(self.active_keyword)
         self.image_data_queue = {}
-        self.log_map()
+        self.logger_map()
         self.check_data_path()
 
-    def log_map(self):
+    def logger_map(self):
         self.error = nonebot.logger.error
         self.warning = nonebot.logger.warning
         self.info = nonebot.logger.info
@@ -136,12 +136,12 @@ class CustomEmote:
         save_path = await self.download_image(url)
         if save_path is None:
             self.error("图片下载失败！")
-            return {}
+            return None
         image_type = imghdr.what(save_path)
         if not image_type:
             self.error("不支持的图片格式！")
             os.remove(save_path)
-            return {}
+            return None
         else:
             save_path_final_dir = Path(self.group_image_save_path, group_id)
             save_path_final = Path(save_path_final_dir,
@@ -186,7 +186,7 @@ class CustomEmote:
         else:
             self.error("图片存储模式设置错误！")
             return
-        if data is {}:
+        if data is None:
             return False
         data_path = Path(self.group_image_path, f"{group_id}.json")
         self.info(f"Saving images to {data_path}")
