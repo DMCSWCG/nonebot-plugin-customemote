@@ -37,13 +37,6 @@ __plugin_meta__ = PluginMetadata(
     },
 )
 
-customemote = CustomEmote(plugin_config)
-
-# 自定义表情包设置Matcher
-custom_emote_image_set = on_command("自定表情包设置",
-                                    aliases={"自定义表情包设置", "自定表情设置", "自定义表情设置"},
-                                    priority=10,
-                                    block=False)
 
 customemote = CustomEmote(plugin_config)
 
