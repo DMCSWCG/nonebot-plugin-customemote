@@ -1,0 +1,20 @@
+[tool.poetry]
+authors = ["DMCSWCG <cf136cs@163.com>", "Techlorine <tri3chlorine@gmail.com>"]
+description = "用于群聊中设置自定义表情包，并在需要的时候使用对应名称召唤机器人发送表情，不再有打开相册翻表情的烦恼。"
+license = "MIT"
+name = "nonebot-plugin-customemote"
+readme = "README.md"
+version = "0.1.0"
+repository = "https://github.com/DMCSWCG/nonebot-plugin-customemote"
+
+[tool.poetry.dependencies]
+python = ">=3.8, <4.0"
+ujson = "^5.7.0"
+aiofiles = "^22.1.0"
+httpx = ">=0.23.0"
+nonebot2 = { version = "^2.0.0-rc.3", extras = ["fastapi"] }
+nonebot-adapter-onebot = "^2.2.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
