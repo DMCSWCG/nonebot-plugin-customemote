@@ -3,7 +3,7 @@ import nonebot
 
 try:
     import ujson as json
-except:
+except ModuleNotFoundError as _:
     import json
 
 from difflib import SequenceMatcher
@@ -17,6 +17,7 @@ from .config import Config
 
 
 class CustomEmote:
+
     def __init__(self, setup_config: Config) -> None:
         save_emote_path = setup_config.save_emote_path
         save_emote_mode = setup_config.save_emote_mode
@@ -92,7 +93,7 @@ class CustomEmote:
                 await f.write(data)
             return save_path
         except Exception as e:
-            self.error("表情图片下载失败 Res:{}".format(e))
+            self.error(f"表情图片下载失败 Res:{e}")
             return None
 
     async def save_as_cqhttp_image_file(self,
@@ -123,23 +124,21 @@ class CustomEmote:
                                         group_id,
                                         user_id,
                                         share=True) -> dict:
+
         async def to_save(save_path):
             path_head = "file:///"
             data_path = Path(self.group_image_path, f"{group_id}.json")
             data = {}
             if os.path.exists(save_path):
                 data = await self.ReadJson(data_path)
-                data[emote_name]["image_path"] = save_path
-                data[emote_name]["user_id"] = user_id
-                data[emote_name]["share"] = share
             else:
                 data = {}
-                data[emote_name] = {
-                    "image_file": None,
-                    "image_path": path_head + save_path,
-                    "user_id": user_id,
-                    "share": share
-                }
+            data[emote_name] = {
+                "image_file": None,
+                "image_path": path_head + save_path,
+                "user_id": user_id,
+                "share": share
+            }
             return data
 
         save_path = await self.download_image(url)
@@ -236,6 +235,6 @@ class CustomEmote:
             if keyword not in data:
                 return False
             data.pop(keyword)
-            await self.WriteJson(data_path)
+            await self.WriteJson(data_path, data)
             return True
         return False

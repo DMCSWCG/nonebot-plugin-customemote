@@ -1,4 +1,3 @@
-import nonebot
 from pydantic import BaseSettings
 
 
