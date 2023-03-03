@@ -4,7 +4,7 @@ from nonebot.typing import T_State
 from nonebot.params import ArgPlainText, CommandArg
 from nonebot.matcher import Matcher
 from nonebot.adapters import Message
-
+from typing import Union
 try:
     from nonebot.adapters.cqhttp import Bot, MessageSegment, GroupMessageEvent, Message
 except ModuleNotFoundError as _:
@@ -60,13 +60,12 @@ async def _sethandle(bot: Bot,
                      state: T_State,
                      args: Message = CommandArg()):
     image_data_queue = await customemote.get_image_data_queue()
-    user_id = event.get_user_id()
+    at_user_id = await get_at_user_id(Message(event.get_message()))
+    user_id = event.get_user_id() if at_user_id is None else at_user_id
     args = args.extract_plain_text()
     group_id = event.group_id
-    # 三次重试
-    state["max_try"] = 3
+    state["max_try"] = 3    # 三次重试
     emote_name = args
-    state["emote_name"] = emote_name
     if not emote_name:
         await custom_emote_image_set.finish("请输入需要设置的表情名称")
     if not str(group_id) in image_data_queue:
@@ -78,7 +77,8 @@ async def _sethandle(bot: Bot,
         image_data_queue[str(group_id)].pop(user_id)
         customemote.put_image_data_queue(image_data_queue)
         await custom_emote_image_set.finish("上次发图距离现在的时间太长了！请再发送图片后再使用该命令！")
-
+    state["emote_name"] = emote_name
+    state["emote_set_user_id"] = user_id
     state["confirm_save"] = False
 
     if matcher.get_arg("two_step_check") == None:
@@ -93,8 +93,15 @@ async def _sethandle(bot: Bot,
 
     if (state["confirm_save"]):
         nonebot.logger.debug("可以存图！")
-        await set_image(event, emote_name)
+        await set_image(event, state["emote_name"], state["emote_set_user_id"])
 
+async def get_at_user_id(messsage:Message)->Union[Union[str,int],None]:
+        at_user_id = None
+        for msg in messsage:
+            if msg.type=="at":
+                at_user_id = msg.data["qq"]
+                break
+        return at_user_id
 
 @custom_emote_image_set.got("two_step_check", prompt="当前设置的表情名称已经存在！是否覆盖设置？")
 async def _2stepcheck(bot: Bot,
@@ -112,7 +119,7 @@ async def _2stepcheck(bot: Bot,
 
     if (state["confirm_save"]):
         nonebot.logger.debug("可以存图！")
-        await set_image(event, state["emote_name"])
+        await set_image(event, state["emote_name"], state["emote_set_user_id"])
     else:
         nonebot.logger.debug("取消存图！")
         await custom_emote_image_set.finish("取消设置！")
@@ -120,9 +127,8 @@ async def _2stepcheck(bot: Bot,
 
 # @custom_emote_image_set.got("set_image")
 # 所有分支里事件都结束了，直接内置处理
-async def set_image(event: GroupMessageEvent, emote_name: str):
+async def set_image(event: GroupMessageEvent, emote_name: str, emote_set_user_id:str):
     group_id: str = str(event.group_id)
-    emote_set_user_id: str = event.get_user_id()
     image_data_queue = await customemote.get_image_data_queue()
     execute_sucessful = False
     image_data_obj = image_data_queue[group_id][emote_set_user_id]
@@ -139,7 +145,12 @@ async def set_image(event: GroupMessageEvent, emote_name: str):
     else:
         reply = MessageSegment.reply(
             image_data_obj["message_id"]) + MessageSegment.text("设置成功！")
-        await custom_emote_image_set.finish(reply)
+        try:
+            await custom_emote_image_set.send(reply)
+        except Exception as e:
+            nonebot.logger.error(f"回复消息发送失败！Res:{e}")
+            await custom_emote_image_set.send(MessageSegment.text("设置成功！"))
+        await custom_emote_image_set.finish()
 
 
 # 表情记录获取Matcher
@@ -166,7 +177,7 @@ async def _emotecap(bot: Bot, event: GroupMessageEvent, state: T_State):
 
 
 # 表情发送Matcher
-custom_emote_image_handle = on_endswith(tuple(customemote.active_keyword),
+custom_emote_image_handle = on_endswith(customemote.active_keyword_tuple,
                                         priority=12,
                                         block=False)
 
