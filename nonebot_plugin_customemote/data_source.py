@@ -82,16 +82,15 @@ class CustomEmote:
         async with aiofiles.open(path, "w+") as f:
             await f.write(json.dumps(data,indent=4))
 
-    async def download_image(self, url)->Union(str,None):
+    async def download_image(self, url)->Union[str,None]:
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 data = await client.get(url)
             prepare_name = "".join(random.choices(ascii_letters, k=12)) + str(
                 random.randint(10E5, 10E6))
-            data=data.content
             save_path = Path(self.temp_image_path, prepare_name)
             async with aiofiles.open(save_path, "wb") as f:
-                await f.write(data)
+                await f.write(data.content)
             return save_path
         except Exception as e:
             self.error(f"表情图片下载失败 Res:{e}")
@@ -106,17 +105,14 @@ class CustomEmote:
         data_path = Path(self.group_image_path, f"{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
-            data[emote_name]["image_file"] = file
-            data[emote_name]["user_id"] = user_id
-            data[emote_name]["share"] = share
         else:
             data = {}
-            data[emote_name] = {
-                "image_file": file,
-                "image_path": None,
-                "user_id": user_id,
-                "share": share
-            }
+        data[emote_name] = {
+            "image_file": file,
+            "image_path": None,
+            "user_id": user_id,
+            "share": share
+        }
         return data
 
     async def save_as_direct_image_file(self,
@@ -124,39 +120,36 @@ class CustomEmote:
                                         url:str=None,
                                         group_id:Union[str,int]=None,
                                         user_id:Union[str,int]=None,
-                                        share:bool=True) -> Union[dict,None]:
+                                        share:bool=True) -> dict:
         async def to_save(save_path):
             path_head = "file:///"
             data_path = Path(self.group_image_path, f"{group_id}.json")
             data = {}
             if os.path.exists(save_path):
                 data = await self.ReadJson(data_path)
+                data[emote_name]["image_path"]=save_path
             else:
                 data = {}
-            data[emote_name] = {
-                "image_file": None,
-                "image_path": path_head + save_path,
-                "user_id": user_id,
-                "share": share
-            }
+                data[emote_name]={"image_file":None,"image_path":path_head+save_path, "user_id": user_id, "share": share}
             return data
 
         save_path = await self.download_image(url)
         if save_path is None:
             self.error("图片下载失败！")
-            return None
+            return {}
         image_type = imghdr.what(save_path)
         if not image_type:
             self.error("不支持的图片格式！")
             os.remove(save_path)
-            return None
+            return {}
         else:
-            save_path_final = Path(self.group_image_save_path, group_id,
+            save_path_final_dir = Path(self.group_image_save_path, group_id)
+            save_path_final = Path(save_path_final_dir,
                                    emote_name + ".{}".format(image_type))
-            if not os.path.exists(save_path_final):
-                os.makedirs(save_path_final)
             async with aiofiles.open(save_path, "rb") as f:
                 data = await f.read()
+            if not os.path.exists(save_path_final_dir):
+                os.makedirs(save_path_final_dir)
             async with aiofiles.open(save_path_final, "wb") as f:
                 await f.write(data)
             os.remove(save_path)
@@ -193,7 +186,7 @@ class CustomEmote:
         else:
             self.error("图片存储模式设置错误！")
             return
-        if data is None:
+        if data is {}:
             return False
         data_path = Path(self.group_image_path, f"{group_id}.json")
         self.info(f"Saving images to {data_path}")
@@ -215,7 +208,7 @@ class CustomEmote:
                 return image_data[data]
         return None
 
-    async def search_matcher_emote(self, emote_name:str, group_id:Union[str,int], user_id:Union[str,int])->Union[Tuple(None,None),Tuple(str,str)]:
+    async def search_matcher_emote(self, emote_name:str, group_id:Union[str,int], user_id:Union[str,int])->Union[Tuple[None,None],Tuple[str,str]]:
         emote_name = await self.get_emote_name(emote_name)
         self_group_data = await self.get_image_file_list(group_id)
         if self_group_data is None:

@@ -130,9 +130,12 @@ async def set_image(event: GroupMessageEvent, emote_name: str, emote_set_user_id
             emote_name, image_data_obj["image_file"], image_data_obj["url"],
             group_id, emote_set_user_id)
     except Exception as e:
-        nonebot.logger.error("自定表情设置失败 Res:\n" + str(e) +
-                             str(traceback.format_stack()[0]))
-        await custom_emote_image_set.finish("设置失败！出错了！")
+        nonebot.logger.error("自定表情设置失败!")
+        try:
+            await custom_emote_image_set.finish("设置失败！出错了！")
+        except Exception as e:
+            pass
+        raise e
     if not execute_sucessful:
         await custom_emote_image_set.finish("设置失败！出错了！")
     else:
