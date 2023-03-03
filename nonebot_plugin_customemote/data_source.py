@@ -9,12 +9,11 @@ except ModuleNotFoundError as _:
 from difflib import SequenceMatcher
 import aiofiles
 import httpx
-from nonebot import get_driver
 from pathlib import Path
 import imghdr, random
 from string import ascii_letters
 from .config import Config
-
+from typing import Union,Tuple
 
 class CustomEmote:
 
@@ -32,6 +31,7 @@ class CustomEmote:
         self.temp_image_path = Path(self.save_emote_path, "temp")
         self.emote_save_mode = save_emote_mode
         self.active_keyword = ["jpg", "png", "gif", "JPG", "PNG", "GIF"]
+        self.active_keyword_tuple = tuple(self.active_keyword)
         self.image_data_queue = {}
         self.log_map()
         self.check_data_path()
@@ -51,7 +51,7 @@ class CustomEmote:
         self.image_data_queue = queue
         return True
 
-    def check_data_path(self):
+    def check_data_path(self)->None:
         if not os.path.exists(self.save_emote_path):
             os.makedirs(self.save_emote_path)
         if not os.path.exists(self.group_image_path):
@@ -61,7 +61,7 @@ class CustomEmote:
         if not os.path.exists(self.group_image_save_path):
             os.makedirs(self.group_image_save_path)
 
-    async def send_trigger(self, text: str):
+    async def send_trigger(self, text: str)->bool:
         for keyword in self.active_keyword:
             if text.endswith(keyword):
                 return True
@@ -73,16 +73,16 @@ class CustomEmote:
             emote_name = emote_name.replace(not_in_str, "")
         return emote_name
 
-    async def ReadJson(self, path):
+    async def ReadJson(self, path:str)->dict:
         async with aiofiles.open(path, "r") as f:
             data = await f.readlines()
         return json.loads("".join(data))
 
-    async def WriteJson(self, path, data):
+    async def WriteJson(self, path, data)->None:
         async with aiofiles.open(path, "w+") as f:
-            await f.write(json.dumps(data))
+            await f.write(json.dumps(data,indent=4))
 
-    async def download_image(self, url):
+    async def download_image(self, url)->Union(str,None):
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 data = await client.get(url)
@@ -97,11 +97,11 @@ class CustomEmote:
             return None
 
     async def save_as_cqhttp_image_file(self,
-                                        emote_name,
-                                        file,
-                                        group_id,
-                                        user_id,
-                                        share=True) -> dict:
+                                        emote_name:str=None,
+                                        file:str=None,
+                                        group_id:Union[str,int]=None,
+                                        user_id:Union[str,int]=None,
+                                        share:bool=True) -> dict:
         data_path = Path(self.group_image_path, f"{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
@@ -119,12 +119,11 @@ class CustomEmote:
         return data
 
     async def save_as_direct_image_file(self,
-                                        emote_name,
-                                        url,
-                                        group_id,
-                                        user_id,
-                                        share=True) -> dict:
-
+                                        emote_name:str=None,
+                                        url:str=None,
+                                        group_id:Union[str,int]=None,
+                                        user_id:Union[str,int]=None,
+                                        share:bool=True) -> dict:
         async def to_save(save_path):
             path_head = "file:///"
             data_path = Path(self.group_image_path, f"{group_id}.json")
@@ -160,8 +159,8 @@ class CustomEmote:
             os.remove(save_path)
         return await to_save(save_path_final)
 
-    async def emote_name_is_exist(self, emote_name: str, group_id,
-                                  user_id) -> bool:
+    async def emote_name_is_exist(self, emote_name: str, group_id:Union[str,int],
+                                  user_id:Union[str,int]) -> bool:
         file, url = await self.search_matcher_emote(emote_name, group_id,
                                                     user_id)
         if file is not None or url is not None:
@@ -169,12 +168,12 @@ class CustomEmote:
         return False
 
     async def save_emote_image(self,
-                               emote_name=None,
-                               file=None,
-                               url=None,
-                               group_id=None,
-                               user_id=None,
-                               share=True) -> bool:
+                               emote_name:str=None,
+                               file:str=None,
+                               url:str=None,
+                               group_id:Union[str,int]=None,
+                               user_id:Union[str,int]=None,
+                               share:bool=True) -> bool:
         data = {}
         if self.emote_save_mode == 0:
             data = await self.save_as_cqhttp_image_file(emote_name=emote_name,
@@ -198,7 +197,7 @@ class CustomEmote:
         await self.WriteJson(data_path, data)
         return True
 
-    async def get_image_file_list(self, group_id):
+    async def get_image_file_list(self, group_id)->Union[dict,None]:
         data_path = Path(self.group_image_path, f"{group_id}.json")
         if os.path.exists(data_path):
             group_self_data = await self.ReadJson(data_path)
@@ -206,14 +205,14 @@ class CustomEmote:
             group_self_data = None
         return group_self_data
 
-    async def get_best_matcher_file(self, image_data, emote_name):
+    async def get_best_matcher_file(self, image_data:dict, emote_name:str)->Union[str,None]:
         for data in image_data.keys():
             MatcherRate = SequenceMatcher(None, data, emote_name).ratio()
             if MatcherRate > 0.85:
                 return image_data[data]
         return None
 
-    async def search_matcher_emote(self, emote_name, group_id, user_id):
+    async def search_matcher_emote(self, emote_name:str, group_id:Union[str,int], user_id:Union[str,int])->Union[Tuple(None,None),Tuple(str,str)]:
         emote_name = await self.get_emote_name(emote_name)
         self_group_data = await self.get_image_file_list(group_id)
         if self_group_data is None:
@@ -228,7 +227,7 @@ class CustomEmote:
             return None, None
         return emote_data["image_file"], emote_data["image_path"]
 
-    async def remove_custom_emote(self, group_id, keyword):
+    async def remove_custom_emote(self, group_id:Union[str,int], keyword:str)->bool:
         data_path = Path(self.group_image_path + f"{group_id}.json")
         if os.path.exists(data_path):
             data = await self.ReadJson(data_path)
