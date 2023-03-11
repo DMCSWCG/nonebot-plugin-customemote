@@ -53,5 +53,5 @@ save_face_mode = 0  # 表情包的保存模式
   </a> 
   
   <a href="">
-    <img src="https://img.shields.io/badge/release-v1.0-blueviolet" alt="release">
+    <img src="https://img.shields.io/badge/release-v0.1.0-blueviolet" alt="release">
 </a>
