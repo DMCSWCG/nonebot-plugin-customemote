@@ -125,11 +125,11 @@ class CustomEmote:
             path_head = "file:///"
             data_path = Path(self.group_image_path, f"{group_id}.json")
             data = {}
-            if os.path.exists(save_path):
+            if os.path.exists(data_path):
                 data = await self.ReadJson(data_path)
             else:
                 data = {}
-            data[emote_name]= {"image_file":None,"image_path":str(path_head+save_path), "user_id": user_id, "share": share}
+            data[emote_name]= {"image_file":None,"image_path":str(path_head+str(save_path)), "user_id": user_id, "share": share}
             return data
 
         save_path = await self.download_image(url)
