@@ -19,9 +19,9 @@
 ### 全局配置：
 ***
 ```python
-save_face_path = "" # 表情包数据存放位置 默认./data/custom_face_data/
+save_emote_path = "" # 表情包数据存放位置 默认./data/custom_emote_data/
 
-save_face_mode = 0  # 表情包的保存模式 
+save_emote_mode = 0  # 表情包的保存模式 
 # 0 为使用cqhttp image file保存模式,使用Go-cqhttp的图像记录文件,存在失效的问题,优点是节约硬盘空间
 
 # 1 为图片文件下载保存模式,直接下载图像文件保存在服务器上,无失效问题(如文件被删除则失效),但需注意存储空间使用量
