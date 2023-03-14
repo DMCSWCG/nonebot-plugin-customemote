@@ -129,7 +129,12 @@ class CustomEmote:
                 data = await self.ReadJson(data_path)
             else:
                 data = {}
-            data[emote_name]= {"image_file":None,"image_path":str(path_head+str(save_path)), "user_id": user_id, "share": share}
+            data[emote_name]= {
+                "image_file":None,
+                "image_path":path_head+str(save_path), 
+                "user_id": user_id, 
+                "share": share
+            }
             return data
 
         save_path = await self.download_image(url)
@@ -184,7 +189,7 @@ class CustomEmote:
                                                         share=share)
         else:
             self.error("图片存储模式设置错误！")
-            return
+            return False
         if data is None:
             return False
         data_path = Path(self.group_image_path, f"{group_id}.json")
